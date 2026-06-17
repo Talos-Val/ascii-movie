@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ASCII MOVIEKERNEL — Prince of Crows</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;600;700&display=swap');
+:root{
+  --bg:#0a0a0f;--surface:#10101a;--border:#1e1e30;
+  --accent:#c8ff00;--dim:#3a3a55;--text:#d0d0e8;--muted:#55556a;
+  --mono:'Share Tech Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;display:flex;flex-direction:column}
+
+header{padding:14px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:.75rem;color:var(--accent);letter-spacing:.12em}
+.logo em{color:var(--muted);font-style:normal}
+header a{font-size:.65rem;color:var(--muted);text-decoration:none;letter-spacing:.08em;transition:color .2s}
+header a:hover{color:var(--accent)}
+
+main{flex:1;display:grid;grid-template-columns:280px 1fr}
+
+aside{border-right:1px solid var(--border);padding:20px 16px;display:flex;flex-direction:column;gap:20px;overflow-y:auto}
+.lbl{font-size:.55rem;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;margin-bottom:6px}
+
+/* Upload */
+label#upload-label{display:block;border:1px dashed var(--dim);border-radius:4px;padding:20px 12px;text-align:center;cursor:pointer;transition:.2s}
+label#upload-label:hover{border-color:var(--accent);background:rgba(200,255,0,.03)}
+label#upload-label .icon{font-size:1.4rem;color:var(--dim);display:block;margin-bottom:6px}
+label#upload-label .hint{font-size:.62rem;color:var(--muted);line-height:1.8}
+#fname{font-size:.6rem;color:var(--accent);margin-top:6px;word-break:break-all}
+#file-input{display:none}
+
+/* Debug log */
+#dbg{background:#050508;border:1px solid var(--border);border-radius:3px;
+  padding:8px 10px;font-size:.58rem;color:#666;max-height:80px;overflow-y:auto;line-height:1.8}
+#dbg .ok{color:var(--accent)}
+#dbg .err{color:#ff4444}
+#dbg .warn{color:#ffaa00}
+
+/* Controls */
+.cg{display:flex;flex-direction:column;gap:5px}
+.cg label{font-size:.62rem;color:var(--muted);display:flex;justify-content:space-between}
+.cg label b{color:var(--accent);font-weight:normal}
+input[type=range]{-webkit-appearance:none;width:100%;height:2px;background:var(--dim);border-radius:2px;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--accent)}
+select{background:var(--surface);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:.65rem;padding:6px 8px;border-radius:3px;cursor:pointer;width:100%}
+
+/* Buttons */
+.btn{font-family:var(--mono);font-size:.65rem;letter-spacing:.08em;padding:9px 14px;
+  border:1px solid var(--border);border-radius:3px;cursor:pointer;text-transform:uppercase;
+  transition:.15s;background:transparent;color:var(--muted);width:100%;margin-bottom:6px}
+.btn:disabled{opacity:.25;cursor:not-allowed}
+.btn.primary{border-color:var(--accent);color:var(--accent)}
+.btn.primary:not(:disabled):hover{background:var(--accent);color:#000}
+
+/* Progress */
+#pgwrap{display:none;flex-direction:column;gap:4px}
+#pgout{height:2px;background:var(--dim);border-radius:2px;overflow:hidden}
+#pgin{height:100%;width:0;background:var(--accent);transition:width .06s}
+#pgtxt{font-size:.58rem;color:var(--muted)}
+
+/* Player */
+.player{display:flex;flex-direction:column;padding:20px 24px;gap:14px}
+.phdr{display:flex;justify-content:space-between;align-items:center}
+.ptitle{font-size:.55rem;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+#status{font-size:.6rem;color:var(--muted)}
+
+#screen{flex:1;background:#000;border:1px solid var(--border);border-radius:2px;
+  min-height:300px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+#cvs{display:none;image-rendering:pixelated;max-width:100%;max-height:100%}
+#ph{font-size:.65rem;color:var(--dim);text-align:center;line-height:2.2}
+
+.pbar{display:flex;align-items:center;gap:8px}
+.pbtn{font-family:var(--mono);font-size:.65rem;padding:7px 12px;border:1px solid var(--border);
+  border-radius:3px;cursor:pointer;background:transparent;color:var(--muted);transition:.15s;white-space:nowrap}
+.pbtn:disabled{opacity:.25;cursor:not-allowed}
+.pbtn:not(:disabled):hover{border-color:var(--accent);color:var(--accent)}
+#tdisp{font-size:.62rem;color:var(--muted);min-width:88px;white-space:nowrap}
+#seek{flex:1;height:2px;-webkit-appearance:none;background:var(--dim);border-radius:2px;cursor:pointer}
+#seek::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:var(--accent)}
+#seek:disabled{opacity:.25}
+
+footer{border-top:1px solid var(--border);padding:9px 24px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+footer p{font-size:.55rem;color:var(--dim)}
+footer a{color:var(--muted);text-decoration:none;transition:color .2s}
+footer a:hover{color:var(--accent)}
+
+@media(max-width:680px){main{grid-template-columns:1fr}aside{border-right:none;border-bottom:1px solid var(--border)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><em>◈</em> ASCII MOVIEKERNEL <em>// v3</em></div>
+  <a href="https://talos-val.github.io/database" target="_blank">⬡ DATABASE →</a>
+</header>
+
+<main>
+<aside>
+  <div>
+    <div class="lbl">01 — Video laden</div>
+    <!-- Using a plain label wrapping input — most reliable cross-browser approach -->
+    <label id="upload-label" for="file-input">
+      <span class="icon">⬆</span>
+      <span class="hint">Klicken zum Auswählen<br>oder Datei hierher ziehen</span>
+      <div id="fname"></div>
+    </label>
+    <input type="file" id="file-input" accept="video/*,.mp4,.m4v,.mov,.qt,.avi,.mkv,.webm,.ogv,.ogg,.flv,.wmv,.mpg,.mpeg,.mts,.m2ts,.3gp,.3g2,.ts,.vob,.asf">
+    <button class="btn" id="clrbtn" disabled style="margin-top:8px">✕ Auswahl leeren</button>
+  </div>
+
+  <div id="dbg"><span style="color:#333">// Debug-Log</span></div>
+
+  <div>
+    <div class="lbl">02 — Auflösung</div>
+    <div class="cg">
+      <label>Zeichen/Zeile <b id="cv">80</b></label>
+      <input type="range" id="cols" min="40" max="500" value="80" step="10">
+    </div>
+  </div>
+
+  <div>
+    <div class="lbl">03 — Framerate</div>
+    <div class="cg">
+      <label>FPS <b id="fv">20</b></label>
+      <input type="range" id="fps" min="5" max="60" value="20" step="1">
+    </div>
+  </div>
+
+  <div>
+    <div class="lbl">04 — Farbmodus</div>
+    <select id="cm">
+      <option value="full">Vollfarbe (RGB)</option>
+      <option value="neon">Neon (Acid Green)</option>
+      <option value="amber">Amber / Terminal</option>
+      <option value="cyan">Cyan / Retro</option>
+      <option value="spectrum">Spektrum (HSL)</option>
+      <option value="bw">Schwarzweiß</option>
+    </select>
+  </div>
+
+  <div>
+    <div class="lbl">05 — Zeichensatz</div>
+    <select id="chs">
+      <option value="std">Standard</option>
+      <option value="blocks">Blöcke (░▒▓█)</option>
+      <option value="ext">Erweitert</option>
+      <option value="min">Minimal</option>
+    </select>
+  </div>
+
+  <div>
+    <div id="pgwrap">
+      <div id="pgout"><div id="pgin"></div></div>
+      <div id="pgtxt">Warte…</div>
+    </div>
+    <button class="btn primary" id="rbtn" disabled>▶ Rendern</button>
+    <button class="btn" id="xbtn" disabled>↺ Reset</button>
+  </div>
+</aside>
+
+<div class="player">
+  <div class="phdr">
+    <div class="ptitle">MOVIEKERNEL // ASCII OUTPUT</div>
+    <div id="status">bereit</div>
+  </div>
+  <div id="screen">
+    <div id="ph">[ kein Frame ]<br>Video laden → Rendern klicken</div>
+    <canvas id="cvs"></canvas>
+  </div>
+  <div class="pbar">
+    <button class="pbtn" id="pbtn" disabled>▶</button>
+    <button class="pbtn" id="stepbtn" disabled>▸|</button>
+    <span id="tdisp">0:00 / 0:00</span>
+    <input type="range" id="seek" min="0" value="0" step="1" disabled>
+    <span id="fpslbl">—</span>
+  </div>
+  <button class="btn primary" id="expbtn" disabled>⬇ Als Video exportieren</button>
+</div>
+</main>
+
+<footer>
+  <p>© 2024 <strong style="color:var(--text)">Prince of Crows</strong> — Alle Rechte vorbehalten</p>
+  <p><a href="https://talos-val.github.io/database" target="_blank">talos-val.github.io/database ↗</a></p>
+</footer>
+
+<script>
+/* ── ASCII MOVIEKERNEL v3 — © Prince of Crows ── */
+'use strict';
+
+const CHARS = {
+  std:    " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
+  blocks: ' ░▒▓█',
+  ext:    " .:;Il!+*#MW&8%B@$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+  min:    ' .+#@',
+};
+
+// Fixed char cell dimensions (px) matching 'Share Tech Mono' 7px
+const CW = 4.2, CH = 8;
+
+// ── DOM refs ──────────────────────────────────────
+const fileInput = document.getElementById('file-input');
+const fname     = document.getElementById('fname');
+const colsR     = document.getElementById('cols');
+const colsV     = document.getElementById('cv');
+const fpsR      = document.getElementById('fps');
+const fpsV      = document.getElementById('fv');
+const cmSel     = document.getElementById('cm');
+const chsSel    = document.getElementById('chs');
+const rbtn      = document.getElementById('rbtn');
+const xbtn      = document.getElementById('xbtn');
+const clrbtn    = document.getElementById('clrbtn');
+const pgwrap    = document.getElementById('pgwrap');
+const pgin      = document.getElementById('pgin');
+const pgtxt     = document.getElementById('pgtxt');
+const cvs       = document.getElementById('cvs');
+const ph        = document.getElementById('ph');
+const pbtn      = document.getElementById('pbtn');
+const stepbtn   = document.getElementById('stepbtn');
+const seekEl    = document.getElementById('seek');
+const expbtn    = document.getElementById('expbtn');
+const tdisp     = document.getElementById('tdisp');
+const fpslbl    = document.getElementById('fpslbl');
+const statusEl  = document.getElementById('status');
+const dbg       = document.getElementById('dbg');
+const dropZone  = document.getElementById('upload-label');
+
+// ── State ─────────────────────────────────────────
+let frames = [], cf = 0, playing = false, raf = null, lt = 0;
+let videoEl = null; // created fresh per load
+let currentObjectURL = null;
+
+// ── Debug logger ──────────────────────────────────
+function log(msg, cls='') {
+  const d = document.createElement('div');
+  if(cls) d.className = cls;
+  d.textContent = msg;
+  dbg.appendChild(d);
+  dbg.scrollTop = dbg.scrollHeight;
+}
+
+// ── Globaler Fehler-Handler ────────────────────────
+// Läuft im selben Script wie der Rest der Seite, bekommt also die echten
+// Fehlerdetails, auch wenn ein umgebender Wrapper/Vorschau-WebView nach außen
+// nur "Script error." anzeigt (Cross-Origin-Verschleierung der Browser-API).
+window.addEventListener('error', e => {
+  const where = e.filename ? (' @ ' + e.filename.split('/').pop() + ':' + e.lineno + ':' + e.colno) : '';
+  log('JS-Fehler: ' + (e.message || e.error?.message || '(keine Details)') + where, 'err');
+});
+window.addEventListener('unhandledrejection', e => {
+  log('Promise-Fehler: ' + (e.reason?.message || e.reason || '(keine Details)'), 'err');
+});
+
+// ── Codec-Diagnose (einmalig beim Laden) ───────────
+(function codecCheck() {
+  const v = document.createElement('video');
+  const tests = [
+    ['MP4 / H.264 Baseline', 'video/mp4; codecs="avc1.42E01E"'],
+    ['MP4 / H.264 High',     'video/mp4; codecs="avc1.64001F"'],
+    ['MP4 / HEVC (H.265)',   'video/mp4; codecs="hvc1.1.6.L93.B0"'],
+    ['MOV / QuickTime',      'video/quicktime'],
+    ['WebM / VP9',           'video/webm; codecs="vp9"'],
+    ['WebM / VP8',           'video/webm; codecs="vp8"'],
+    ['MP4 / AV1',            'video/mp4; codecs="av01.0.05M.08"'],
+  ];
+  log('— Codec-Check dieses Browsers —');
+  let anyOk = false;
+  tests.forEach(([label, mime]) => {
+    let res = '';
+    try { res = v.canPlayType(mime); } catch(e) {}
+    if(res === 'probably' || res === 'maybe') anyOk = true;
+    log(label + ': ' + (res || 'nein'), res === 'probably' ? 'ok' : res === 'maybe' ? 'warn' : 'err');
+  });
+  if(!anyOk) {
+    log('⚠ Dieser Browser meldet KEINE Unterstützung für gängige Video-Codecs (H.264/HEVC/VP9). Das erklärt SRC_NOT_SUPPORTED bei jeder Datei. Bitte Chrome, Firefox oder Edge in aktueller Version testen — auf Linux ggf. ein Build mit proprietären Codecs (z.B. Google Chrome statt Chromium) oder fehlende GStreamer-Plugins nachinstallieren.', 'err');
+  }
+})();
+
+// ── Slider labels ─────────────────────────────────
+colsR.addEventListener('input', () => colsV.textContent = colsR.value);
+fpsR.addEventListener('input',  () => fpsV.textContent  = fpsR.value);
+
+// ── Drag & drop on the label ──────────────────────
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor='var(--accent)'; });
+dropZone.addEventListener('dragleave', () => dropZone.style.borderColor='');
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.style.borderColor='';
+  const f = e.dataTransfer.files[0];
+  if(f) { videoReadyFired = false; handleFile(f); }
+});
+
+// ── File input change ─────────────────────────────
+fileInput.addEventListener('change', () => {
+  if(fileInput.files[0]) { videoReadyFired = false; handleFile(fileInput.files[0]); }
+});
+
+function handleFile(file) {
+  log('Datei: ' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB)');
+
+  if(!file.type.startsWith('video/')) {
+    log('⚠ Kein Video-Typ: ' + file.type, 'warn');
+    // Try anyway — some browsers mis-detect
+  }
+
+  fname.textContent = file.name;
+  rbtn.disabled = true;
+  clrbtn.disabled = false;
+  statusEl.textContent = 'Lade Video…';
+
+  // Always create a fresh video element to avoid stale state
+  if(videoEl) {
+    videoEl.pause();
+    videoEl.removeAttribute('src');
+    videoEl.load();
+    videoEl.remove();
+  }
+  videoEl = document.createElement('video');
+  videoEl.muted     = true;
+  videoEl.playsInline = true;
+  videoEl.preload   = 'auto';
+  // WICHTIG: kein display:none — iOS/iPadOS Safari lädt/decodiert solche
+  // Video-Elemente teils gar nicht. Statt "unsichtbar" machen wir es
+  // "off-screen aber gerendert": bleibt für Safari ein echtes, aktives Element.
+  videoEl.style.position = 'fixed';
+  videoEl.style.top = '0';
+  videoEl.style.left = '0';
+  videoEl.style.width = '2px';
+  videoEl.style.height = '2px';
+  videoEl.style.opacity = '0.01';
+  videoEl.style.pointerEvents = 'none';
+  videoEl.style.zIndex = '-1';
+  document.body.appendChild(videoEl);
+
+  videoEl.addEventListener('error', e => {
+    const err = videoEl.error;
+    const codes = ['','ABORTED','NETWORK','DECODE','SRC_NOT_SUPPORTED'];
+    log('Fehler ' + (err ? codes[err.code]||err.code : '?') + ': ' + (err?.message||''), 'err');
+    if(err && err.code === 4) {
+      log('Hinweis: Scroll im Debug-Log nach oben zum „Codec-Check" — der zeigt, welche Formate dieser Browser überhaupt abspielen kann. Wenn dort alles "nein" zeigt, hilft Konvertieren nicht — dann fehlt dem Browser/System generell die Codec-Unterstützung.', 'warn');
+    }
+    statusEl.textContent = '⚠ Video-Fehler';
+  });
+
+  videoEl.addEventListener('loadstart',      () => log('loadstart'));
+  videoEl.addEventListener('progress',       () => log('progress (buffering…)'));
+  videoEl.addEventListener('loadedmetadata', () => {
+    log('loadedmetadata: ' + videoEl.videoWidth + '×' + videoEl.videoHeight + '  ' + videoEl.duration.toFixed(1) + 's', 'ok');
+    onVideoReady();
+  });
+  videoEl.addEventListener('loadeddata',     () => { log('loadeddata', 'ok'); onVideoReady(); });
+  videoEl.addEventListener('canplay',        () => { log('canplay', 'ok');    onVideoReady(); });
+
+  const objectURL = URL.createObjectURL(file);
+  if(currentObjectURL) URL.revokeObjectURL(currentObjectURL);
+  currentObjectURL = objectURL;
+  videoEl.src = objectURL;
+  videoEl.load();
+
+  // Hard fallback: if nothing fires in 5s, check anyway
+  setTimeout(() => {
+    if(rbtn.disabled) {
+      log('Timeout — state: readyState=' + videoEl.readyState + ' w=' + videoEl.videoWidth + ' dur=' + videoEl.duration, 'warn');
+      if(videoEl.videoWidth > 0 && videoEl.duration > 0) onVideoReady();
+      else { log('Video konnte nicht gelesen werden.', 'err'); statusEl.textContent = '⚠ Nicht lesbar'; }
+    }
+  }, 5000);
+}
+
+let videoReadyFired = false;
+function onVideoReady() {
+  if(videoReadyFired) return;
+  if(!(videoEl.videoWidth > 0 && videoEl.duration > 0)) return; // not ready yet
+  videoReadyFired = true;
+  rbtn.disabled = false;
+  statusEl.textContent = 'Bereit — ' + fmt(videoEl.duration);
+  log('✓ Button aktiviert', 'ok');
+}
+
+// ── RENDER ────────────────────────────────────────
+rbtn.addEventListener('click', startRender);
+xbtn.addEventListener('click', doReset);
+clrbtn.addEventListener('click', clearInput);
+expbtn.addEventListener('click', exportVideo);
+
+// ── EXPORT als Video (MP4, sonst WebM-Fallback) ────
+// Nutzt canvas.captureStream() + MediaRecorder — eine native Browser-API,
+// keine externe Bibliothek nötig. Spielt dafür einmal in Echtzeit alle
+// Frames ab und zeichnet sie dabei auf das sichtbare Canvas, während der
+// Stream daraus aufgezeichnet wird. Enthält keinen Ton (die ASCII-Frames
+// selbst haben keine Audiospur).
+async function exportVideo() {
+  if(!frames.length) { log('Kein gerendertes Video zum Exportieren.', 'err'); return; }
+  if(!window.MediaRecorder || !cvs.captureStream) {
+    log('⚠ Dieser Browser unterstützt keine Video-Aufnahme aus Canvas (MediaRecorder/captureStream fehlt). Bitte mit aktuellem Chrome, Firefox oder Edge testen.', 'err');
+    return;
+  }
+  stopPlay();
+
+  const fps = parseInt(fpsR.value);
+  let stream;
+  try { stream = cvs.captureStream(fps); }
+  catch(e) { log('⚠ captureStream fehlgeschlagen: ' + e.message, 'err'); return; }
+
+  const candidates = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  const mimeType = candidates.find(m => { try { return MediaRecorder.isTypeSupported(m); } catch(e) { return false; } });
+  if(!mimeType) { log('⚠ Kein vom Browser unterstütztes Aufnahmeformat gefunden.', 'err'); return; }
+  const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+  if(ext !== 'mp4') log('Hinweis: Dieser Browser nimmt kein MP4 direkt auf — Export erfolgt als WebM (läuft in praktisch jedem Player/Browser).', 'warn');
+
+  const chunks = [];
+  let rec;
+  try { rec = new MediaRecorder(stream, {mimeType}); }
+  catch(e) { log('⚠ MediaRecorder-Start fehlgeschlagen: ' + e.message, 'err'); return; }
+  rec.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
+
+  const toggles = [rbtn, xbtn, clrbtn, pbtn, stepbtn, seekEl, expbtn];
+  toggles.forEach(b => b.disabled = true);
+  pgwrap.style.display = 'flex'; pgin.style.width = '0%';
+  statusEl.textContent = 'Exportiere…';
+  log(`Export gestartet (${mimeType}, ${frames.length} Frames, ~${fmt(frames.length/fps)})…`);
+
+  const stopped = new Promise(resolve => { rec.onstop = resolve; });
+  rec.start();
+
+  await new Promise(resolve => {
+    let idx = 0;
+    drawFrame(0);
+    let last = performance.now();
+    const interval = 1000/fps;
+    function step(now) {
+      if(now - last >= interval) {
+        last += interval;
+        idx++;
+        if(idx >= frames.length) {
+          pgin.style.width = '100%'; pgtxt.textContent = `Frame ${frames.length}/${frames.length} (100%)`;
+          resolve(); return;
+        }
+        drawFrame(idx);
+        const pct = Math.round((idx+1)/frames.length*100);
+        pgin.style.width = pct+'%';
+        pgtxt.textContent = `Frame ${idx+1}/${frames.length} (${pct}%)`;
+      }
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+
+  rec.stop();
+  stream.getTracks().forEach(t => t.stop());
+  await stopped;
+  pgwrap.style.display = 'none';
+
+  const blob = new Blob(chunks, {type: mimeType});
+  if(!blob.size) {
+    log('⚠ Export ergab eine leere Datei — dieser Browser unterstützt captureStream/MediaRecorder hier offenbar nicht zuverlässig.', 'err');
+  } else {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'ascii-video.' + ext;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    log('✓ Export fertig: ' + (blob.size/1024/1024).toFixed(1) + ' MB (' + ext.toUpperCase() + ', ohne Ton)', 'ok');
+  }
+
+  toggles.forEach(b => b.disabled = false);
+  statusEl.textContent = 'Bereit — ' + frames.length + ' Frames';
+  drawFrame(cf);
+}
+
+function clearInput() {
+  if(videoEl) {
+    videoEl.pause();
+    videoEl.removeAttribute('src');
+    videoEl.load();
+    videoEl.remove();
+    videoEl = null;
+  }
+  if(currentObjectURL) { URL.revokeObjectURL(currentObjectURL); currentObjectURL = null; }
+  videoReadyFired = false;
+  fileInput.value = '';
+  fname.textContent = '';
+  rbtn.disabled = true;
+  clrbtn.disabled = true;
+  doReset();
+  log('Auswahl geleert', 'ok');
+}
+
+async function startRender() {
+  if(!videoEl || !(videoEl.videoWidth>0)) { log('Kein Video geladen!','err'); return; }
+  stopPlay(); frames=[]; cf=0;
+
+  const cols   = parseInt(colsR.value);
+  const fps    = parseInt(fpsR.value);
+  const chars  = CHARS[chsSel.value];
+  const dur    = videoEl.duration;
+  const vw     = videoEl.videoWidth;
+  const vh     = videoEl.videoHeight;
+  const rows   = Math.max(4, Math.round((vh/vw) * cols * (CW/CH)));
+  const total  = Math.ceil(dur * fps);
+
+  log(`Render: ${cols}×${rows} Zeichen, ${fps} FPS, ${total} Frames`);
+
+  const cellLoad = cols * rows * total;
+  if(cellLoad > 10000000) {
+    log(`⚠ Hohe Last (${cols}×${rows}×${total} = ${cellLoad.toLocaleString('de-DE')} Zellen). Das kann je nach Gerät mehrere Minuten dauern oder den Tab/Browser kurz einfrieren — besonders auf Handy/Tablet. Bei Problemen Auflösung oder FPS reduzieren.`, 'warn');
+  }
+
+  const oc = document.createElement('canvas');
+  oc.width=cols; oc.height=rows;
+  const ox = oc.getContext('2d', {willReadFrequently:true});
+
+  rbtn.disabled=true; xbtn.disabled=true;
+  pgwrap.style.display='flex'; pgin.style.width='0%';
+  statusEl.textContent='Rendere…';
+
+  for(let i=0; i<total; i++) {
+    const t = i/fps;
+    await seekVideo(videoEl, t);
+    ox.drawImage(videoEl, 0, 0, cols, rows);
+    frames.push(buildFrame(ox.getImageData(0,0,cols,rows), cols, rows, chars));
+
+    const pct = Math.round((i+1)/total*100);
+    pgin.style.width = pct+'%';
+    pgtxt.textContent = `Frame ${i+1}/${total} (${pct}%)`;
+    if(i%8===0) await tick();
+  }
+
+  pgwrap.style.display='none';
+  rbtn.disabled=false; xbtn.disabled=false;
+
+  cvs.width  = Math.round(cols*CW);
+  cvs.height = Math.round(rows*CH);
+  ph.style.display='none';
+  cvs.style.display='block';
+
+  seekEl.max=frames.length-1; seekEl.value=0; seekEl.disabled=false;
+  pbtn.disabled=false; stepbtn.disabled=false; expbtn.disabled=false;
+  fpslbl.textContent=fps+' fps';
+  drawFrame(0);
+  statusEl.textContent='Bereit — '+frames.length+' Frames';
+  log('Render fertig ✓', 'ok');
+}
+
+function seekVideo(v, t) {
+  return new Promise(resolve => {
+    // If already at this time (or very close), don't bother seeking
+    if(Math.abs(v.currentTime - t) < 0.01) { resolve(); return; }
+    let done = false;
+    function finish() { if(!done){ done=true; resolve(); } }
+    v.addEventListener('seeked', finish, {once:true});
+    setTimeout(finish, 2000); // safety fallback
+    v.currentTime = t;
+  });
+}
+function tick() { return new Promise(r => setTimeout(r, 0)); }
+
+// ── Frame builder ─────────────────────────────────
+function buildFrame(id, cols, rows, chars) {
+  const d=id.data, cells=new Array(cols*rows);
+  const last=chars.length-1;
+  for(let i=0,n=cols*rows; i<n; i++) {
+    const p=i*4, r=d[p], g=d[p+1], b=d[p+2];
+    const lum = (r*77 + g*150 + b*29) >> 8; // fast lum approx
+    cells[i] = {ch: chars[(lum*last+127)>>8], r, g, b, lum};
+  }
+  return {cells, cols, rows};
+}
+
+// ── Draw ──────────────────────────────────────────
+function drawFrame(idx) {
+  if(!frames[idx]) return;
+  const {cells,cols,rows} = frames[idx];
+  const ctx = cvs.getContext('2d');
+  const mode = cmSel.value;
+  ctx.fillStyle='#000';
+  ctx.fillRect(0,0,cvs.width,cvs.height);
+  ctx.font = "7px 'Share Tech Mono','Courier New',monospace";
+  ctx.textBaseline = 'top';
+  for(let y=0; y<rows; y++) {
+    for(let x=0; x<cols; x++) {
+      const c = cells[y*cols+x];
+      ctx.fillStyle = getColor(c, mode, x, y, cols, rows);
+      ctx.fillText(c.ch, x*CW, y*CH);
+    }
+  }
+  const fps=parseInt(fpsR.value);
+  tdisp.textContent = fmt(idx/fps)+' / '+fmt(frames.length/fps);
+  seekEl.value=idx; cf=idx;
+}
+
+function getColor(c, mode, x, y, cols, rows) {
+  switch(mode) {
+    case 'full':     return `rgb(${c.r},${c.g},${c.b})`;
+    case 'neon':     return `rgb(${c.lum*55>>8},${c.lum},0)`;
+    case 'amber':    return `rgb(${c.lum},${c.lum*55>>8},0)`;
+    case 'cyan':     return `rgb(0,${c.lum*230>>8},${c.lum})`;
+    case 'spectrum': {
+      const h=((x/cols+y/rows)*180+(c.lum>>1))%360;
+      return `hsl(${h},100%,${30+(c.lum/255*55)|0}%)`;
+    }
+    case 'bw': return `rgb(${c.lum},${c.lum},${c.lum})`;
+    default:   return '#fff';
+  }
+}
+
+// ── Playback ──────────────────────────────────────
+pbtn.addEventListener('click',   () => playing ? stopPlay() : startPlay());
+stepbtn.addEventListener('click',() => { stopPlay(); drawFrame((cf+1)%frames.length); });
+seekEl.addEventListener('input', () => { stopPlay(); drawFrame(+seekEl.value); });
+
+function startPlay() {
+  if(!frames.length) return;
+  playing=true; pbtn.textContent='⏸';
+  statusEl.textContent='▶ spielt ab';
+  lt=performance.now();
+  raf=requestAnimationFrame(loop);
+}
+function stopPlay() {
+  playing=false; pbtn.textContent='▶';
+  if(raf){cancelAnimationFrame(raf);raf=null;}
+  if(frames.length) statusEl.textContent='pausiert';
+}
+function loop(now) {
+  const interval = 1000/parseInt(fpsR.value);
+  if(now-lt >= interval) {
+    lt = now - ((now-lt)%interval);
+    const nx = (cf+1)%frames.length;
+    drawFrame(nx);
+    if(nx===0){ stopPlay(); statusEl.textContent='fertig'; return; }
+  }
+  raf=requestAnimationFrame(loop);
+}
+
+function doReset() {
+  stopPlay(); frames=[]; cf=0;
+  cvs.style.display='none'; ph.style.display='block';
+  seekEl.value=0; seekEl.disabled=true;
+  pbtn.disabled=true; stepbtn.disabled=true; expbtn.disabled=true;
+  fpslbl.textContent='—'; tdisp.textContent='0:00 / 0:00';
+  statusEl.textContent='bereit';
+}
+
+function fmt(s) { return Math.floor(s/60)+':'+Math.floor(s%60).toString().padStart(2,'0'); }
+</script>
+</body>
+</html>
